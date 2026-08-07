@@ -1,0 +1,13 @@
+<%- include('layout', { body: `
+  <h1>All Products</h1>
+  <div class="product-grid">
+    ${products.map(p => `
+      <div class="product-card">
+        <img src="${p.image}" alt="${p.name}">
+        <h3>${p.name}</h3>
+        <p class="price">₹${p.price}</p>
+        <a href="/products/${p.id}" class="btn">View Details</a>
+      </div>
+    `).join('')}
+  </div>
+` }) %>
