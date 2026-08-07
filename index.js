@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const methodOverride = require('method-override');
 const path = require('path');
+const { pool, initDB } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,124 +19,97 @@ app.use(session({
   saveUninitialized: true
 }));
 
-// Sample Products Data
-const products = [
-  {
-    id: 1,
-    name: "Wireless Headphones",
-    price: 2499,
-    image: "https://via.placeholder.com/300x300?text=Headphones",
-    description: "High quality wireless headphones with noise cancellation."
-  },
-  {
-    id: 2,
-    name: "Smart Watch",
-    price: 4999,
-    image: "https://via.placeholder.com/300x300?text=Smart+Watch",
-    description: "Feature-rich smartwatch with health tracking."
-  },
-  {
-    id: 3,
-    name: "Bluetooth Speaker",
-    price: 1799,
-    image: "https://via.placeholder.com/300x300?text=Speaker",
-    description: "Portable Bluetooth speaker with deep bass."
-  },
-  {
-    id: 4,
-    name: "Laptop Backpack",
-    price: 1299,
-    image: "https://via.placeholder.com/300x300?text=Backpack",
-    description: "Durable laptop backpack with multiple compartments."
-  },
-  {
-    id: 5,
-    name: "USB-C Hub",
-    price: 999,
-    image: "https://via.placeholder.com/300x300?text=USB+Hub",
-    description: "7-in-1 USB-C hub for laptops."
-  },
-  {
-    id: 6,
-    name: "Mechanical Keyboard",
-    price: 3499,
-    image: "https://via.placeholder.com/300x300?text=Keyboard",
-    description: "RGB mechanical keyboard with blue switches."
-  }
-];
-
-// Helper: Get cart from session
+// Helper
 function getCart(req) {
-  if (!req.session.cart) {
-    req.session.cart = [];
-  }
+  if (!req.session.cart) req.session.cart = [];
   return req.session.cart;
 }
 
-// Routes
+function getCartCount(req) {
+  return getCart(req).reduce((sum, item) => sum + item.quantity, 0);
+}
+
+// ========== ROUTES ==========
 
 // Home
-app.get('/', (req, res) => {
-  res.render('index', {
-    products: products.slice(0, 4),
-    cartCount: getCart(req).reduce((sum, item) => sum + item.quantity, 0)
-  });
+app.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY id LIMIT 4');
+    res.render('index', {
+      products: result.rows,
+      cartCount: getCartCount(req)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error');
+  }
 });
 
 // All Products
-app.get('/products', (req, res) => {
-  res.render('products', {
-    products,
-    cartCount: getCart(req).reduce((sum, item) => sum + item.quantity, 0)
-  });
+app.get('/products', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products ORDER BY id');
+    res.render('products', {
+      products: result.rows,
+      cartCount: getCartCount(req)
+    });
+  } catch (err) {
+    res.status(500).send('Database error');
+  }
 });
 
 // Single Product
-app.get('/products/:id', (req, res) => {
-  const product = products.find(p => p.id === parseInt(req.params.id));
-  if (!product) {
-    return res.status(404).send('Product not found');
+app.get('/products/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).send('Product not found');
+
+    res.render('product', {
+      product: result.rows[0],
+      cartCount: getCartCount(req)
+    });
+  } catch (err) {
+    res.status(500).send('Database error');
   }
-  res.render('product', {
-    product,
-    cartCount: getCart(req).reduce((sum, item) => sum + item.quantity, 0)
-  });
 });
 
 // Add to Cart
-app.post('/cart/add/:id', (req, res) => {
-  const product = products.find(p => p.id === parseInt(req.params.id));
-  if (!product) {
-    return res.status(404).send('Product not found');
+app.post('/cart/add/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).send('Product not found');
+
+    const product = result.rows[0];
+    const cart = getCart(req);
+    const existing = cart.find(item => item.id === product.id);
+
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        quantity: 1
+      });
+    }
+
+    res.redirect('/cart');
+  } catch (err) {
+    res.status(500).send('Error adding to cart');
   }
-
-  const cart = getCart(req);
-  const existingItem = cart.find(item => item.id === product.id);
-
-  if (existingItem) {
-    existingItem.quantity += 1;
-  } else {
-    cart.push({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      quantity: 1
-    });
-  }
-
-  res.redirect('/cart');
 });
 
 // View Cart
 app.get('/cart', (req, res) => {
   const cart = getCart(req);
-  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   res.render('cart', {
     cart,
     total,
-    cartCount: cart.reduce((sum, item) => sum + item.quantity, 0)
+    cartCount: getCartCount(req)
   });
 });
 
@@ -143,35 +117,111 @@ app.get('/cart', (req, res) => {
 app.post('/cart/update/:id', (req, res) => {
   const cart = getCart(req);
   const item = cart.find(i => i.id === parseInt(req.params.id));
-  const quantity = parseInt(req.body.quantity);
+  const qty = parseInt(req.body.quantity);
 
-  if (item && quantity > 0) {
-    item.quantity = quantity;
-  }
-
+  if (item && qty > 0) item.quantity = qty;
   res.redirect('/cart');
 });
 
 // Remove from cart
 app.post('/cart/remove/:id', (req, res) => {
-  let cart = getCart(req);
-  req.session.cart = cart.filter(item => item.id !== parseInt(req.params.id));
+  req.session.cart = getCart(req).filter(item => item.id !== parseInt(req.params.id));
   res.redirect('/cart');
 });
 
-// Checkout (mock)
-app.post('/checkout', (req, res) => {
-  req.session.cart = [];
-  res.send(`
-    <h1 style="text-align:center; margin-top:100px; font-family:Arial">
-      ✅ Order Placed Successfully!
-    </h1>
-    <p style="text-align:center">
-      <a href="/">Continue Shopping</a>
-    </p>
-  `);
+// ========== CHECKOUT (Save to Database) ==========
+app.post('/checkout', async (req, res) => {
+  const cart = getCart(req);
+  if (cart.length === 0) return res.redirect('/cart');
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // Create order
+    const orderRes = await client.query(
+      'INSERT INTO orders (total) VALUES ($1) RETURNING id',
+      [total]
+    );
+    const orderId = orderRes.rows[0].id;
+
+    // Insert order items
+    for (const item of cart) {
+      await client.query(
+        `INSERT INTO order_items (order_id, product_id, quantity, price)
+         VALUES ($1, $2, $3, $4)`,
+        [orderId, item.id, item.quantity, item.price]
+      );
+    }
+
+    await client.query('COMMIT');
+    req.session.cart = []; // clear cart
+
+    res.send(`
+      <div style="text-align:center; margin-top:80px; font-family:Arial">
+        <h1>✅ Order Placed Successfully!</h1>
+        <p>Order ID: #${orderId}</p>
+        <p><a href="/">Continue Shopping</a> | <a href="/admin">View Sales Report</a></p>
+      </div>
+    `);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).send('Checkout failed');
+  } finally {
+    client.release();
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`E-commerce app running on http://localhost:${PORT}`);
+// ========== ADMIN - Top Selling Products ==========
+app.get('/admin', async (req, res) => {
+  try {
+    // Top selling products
+    const topProducts = await pool.query(`
+      SELECT 
+        p.id,
+        p.name,
+        p.price,
+        COALESCE(SUM(oi.quantity), 0) AS total_sold,
+        COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue
+      FROM products p
+      LEFT JOIN order_items oi ON p.id = oi.product_id
+      GROUP BY p.id
+      ORDER BY total_sold DESC
+    `);
+
+    // Recent orders
+    const recentOrders = await pool.query(`
+      SELECT o.id, o.total, o.created_at,
+             COUNT(oi.id) as items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+      LIMIT 10
+    `);
+
+    res.render('admin', {
+      topProducts: topProducts.rows,
+      recentOrders: recentOrders.rows,
+      cartCount: getCartCount(req)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error loading admin panel');
+  }
 });
+
+// Start server after DB is ready
+initDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`E-commerce app running on http://localhost:${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
