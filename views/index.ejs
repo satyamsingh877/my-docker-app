@@ -1,0 +1,19 @@
+<%- include('layout', { body: `
+  <section class="hero">
+    <h1>Welcome to ShopEasy</h1>
+    <p>Best products at the best prices</p>
+    <a href="/products" class="btn">Shop Now</a>
+  </section>
+
+  <h2>Featured Products</h2>
+  <div class="product-grid">
+    ${products.map(p => `
+      <div class="product-card">
+        <img src="${p.image}" alt="${p.name}">
+        <h3>${p.name}</h3>
+        <p class="price">₹${p.price}</p>
+        <a href="/products/${p.id}" class="btn">View</a>
+      </div>
+    `).join('')}
+  </div>
+` }) %>
