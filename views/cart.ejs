@@ -1,0 +1,49 @@
+<%- include('layout', { body: `
+  <h1>Your Cart</h1>
+
+  ${cart.length === 0 ? `
+    <p>Your cart is empty. <a href="/products">Continue Shopping</a></p>
+  ` : `
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Price</th>
+          <th>Quantity</th>
+          <th>Subtotal</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${cart.map(item => `
+          <tr>
+            <td>
+              <img src="${item.image}" width="60">
+              ${item.name}
+            </td>
+            <td>₹${item.price}</td>
+            <td>
+              <form action="/cart/update/${item.id}" method="POST" style="display:inline">
+                <input type="number" name="quantity" value="${item.quantity}" min="1" style="width:60px">
+                <button type="submit">Update</button>
+              </form>
+            </td>
+            <td>₹${item.price * item.quantity}</td>
+            <td>
+              <form action="/cart/remove/${item.id}" method="POST">
+                <button type="submit" class="btn-danger">Remove</button>
+              </form>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <div class="cart-total">
+      <h2>Total: ₹${total}</h2>
+      <form action="/checkout" method="POST">
+        <button type="submit" class="btn">Proceed to Checkout</button>
+      </form>
+    </div>
+  `}
+` }) %>
