@@ -5,7 +5,7 @@ services:
     build: .
     image: satyamsinghsg/my-docker-app:latest
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - DB_HOST=db
       - DB_USER=postgres
