@@ -26,5 +26,5 @@ jobs:
       with:
         context: .
         push: true
-        # ✅ CORRECT: Only one valid tag line
-        tags: ${{ secrets.DOCKER_USERNAME }}/my-app:latest
+        # ✅ Must match the repository name you created
+        tags: ${{ secrets.DOCKER_USERNAME }}/my-docker-app:latest
