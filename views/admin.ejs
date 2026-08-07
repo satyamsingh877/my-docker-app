@@ -1,0 +1,55 @@
+<%- include('layout', { body: `
+  <h1>Sales Dashboard</h1>
+
+  <h2 style="margin-top:30px">Top Selling Products</h2>
+  <table class="cart-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Product</th>
+        <th>Price</th>
+        <th>Total Sold</th>
+        <th>Revenue</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${topProducts.map((p, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${p.name}</td>
+          <td>₹${p.price}</td>
+          <td><strong>${p.total_sold}</strong></td>
+          <td>₹${p.revenue}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <h2 style="margin-top:40px">Recent Orders</h2>
+  <table class="cart-table">
+    <thead>
+      <tr>
+        <th>Order ID</th>
+        <th>Items</th>
+        <th>Total</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${recentOrders.length === 0 ? `
+        <tr><td colspan="4" style="text-align:center">No orders yet</td></tr>
+      ` : recentOrders.map(o => `
+        <tr>
+          <td>#${o.id}</td>
+          <td>${o.items}</td>
+          <td>₹${o.total}</td>
+          <td>${new Date(o.created_at).toLocaleString()}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <p style="margin-top:30px">
+    <a href="/" class="btn">Back to Shop</a>
+  </p>
+` }) %>
