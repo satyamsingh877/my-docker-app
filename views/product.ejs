@@ -1,0 +1,13 @@
+<%- include('layout', { body: `
+  <div class="product-detail">
+    <img src="${product.image}" alt="${product.name}">
+    <div class="info">
+      <h1>${product.name}</h1>
+      <p class="price">₹${product.price}</p>
+      <p>${product.description}</p>
+      <form action="/cart/add/${product.id}" method="POST">
+        <button type="submit" class="btn">Add to Cart</button>
+      </form>
+    </div>
+  </div>
+` }) %>
