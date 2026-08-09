@@ -1,0 +1,15 @@
+<%- include('layout', { body: `
+  <h1 class="section-title">My Orders</h1>
+  ${orders.length === 0 ? '<p>No orders yet.</p>' : orders.map(o => `
+    <div class="order-card">
+      <div class="order-header">
+        <strong>Order #${o.id}</strong>
+        <span>${new Date(o.created_at).toLocaleString()}</span>
+        <span class="price">₹${o.total}</span>
+      </div>
+      <ul>
+        ${(o.items || []).map(i => `<li>${i.name} × ${i.quantity} — ₹${i.price * i.quantity}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('')}
+` }) %>
