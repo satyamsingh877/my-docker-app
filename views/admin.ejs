@@ -1,47 +1,34 @@
 <%- include('layout', { body: `
-  <h1>Sales Dashboard</h1>
+  <h1 class="section-title">Admin Dashboard</h1>
 
-  <h2 style="margin-top:30px">Top Selling Products</h2>
-  <table class="cart-table">
+  <h2>Top Selling Products</h2>
+  <table class="table">
     <thead>
-      <tr>
-        <th>#</th>
-        <th>Product</th>
-        <th>Price</th>
-        <th>Total Sold</th>
-        <th>Revenue</th>
-      </tr>
+      <tr><th>#</th><th>Product</th><th>Sold</th><th>Revenue</th><th>Stock</th></tr>
     </thead>
     <tbody>
-      ${topProducts.map((p, i) => `
+      ${topProducts.map((p,i) => `
         <tr>
-          <td>${i + 1}</td>
+          <td>${i+1}</td>
           <td>${p.name}</td>
-          <td>₹${p.price}</td>
           <td><strong>${p.total_sold}</strong></td>
           <td>₹${p.revenue}</td>
+          <td>${p.stock}</td>
         </tr>
       `).join('')}
     </tbody>
   </table>
 
   <h2 style="margin-top:40px">Recent Orders</h2>
-  <table class="cart-table">
+  <table class="table">
     <thead>
-      <tr>
-        <th>Order ID</th>
-        <th>Items</th>
-        <th>Total</th>
-        <th>Date</th>
-      </tr>
+      <tr><th>Order</th><th>User</th><th>Total</th><th>Date</th></tr>
     </thead>
     <tbody>
-      ${recentOrders.length === 0 ? `
-        <tr><td colspan="4" style="text-align:center">No orders yet</td></tr>
-      ` : recentOrders.map(o => `
+      ${recentOrders.map(o => `
         <tr>
           <td>#${o.id}</td>
-          <td>${o.items}</td>
+          <td>${o.user_name || 'Guest'}</td>
           <td>₹${o.total}</td>
           <td>${new Date(o.created_at).toLocaleString()}</td>
         </tr>
@@ -49,7 +36,38 @@
     </tbody>
   </table>
 
-  <p style="margin-top:30px">
-    <a href="/" class="btn">Back to Shop</a>
-  </p>
+  <h2 style="margin-top:40px">Manage Products</h2>
+
+  <form class="admin-form" method="POST" action="/admin/products">
+    <h3>Add New Product</h3>
+    <input name="name" placeholder="Product Name" required>
+    <input name="price" type="number" placeholder="Price" required>
+    <input name="image" placeholder="Image URL">
+    <input name="category" placeholder="Category" value="General">
+    <input name="stock" type="number" placeholder="Stock" value="100">
+    <textarea name="description" placeholder="Description"></textarea>
+    <button class="btn">Add Product</button>
+  </form>
+
+  <table class="table" style="margin-top:30px">
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Price</th><th>Stock</th><th>Category</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      ${products.map(p => `
+        <tr>
+          <td>${p.id}</td>
+          <td>${p.name}</td>
+          <td>₹${p.price}</td>
+          <td>${p.stock}</td>
+          <td>${p.category}</td>
+          <td>
+            <form method="POST" action="/admin/products/${p.id}/delete" style="display:inline" onsubmit="return confirm('Delete this product?')">
+              <button class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
 ` }) %>
