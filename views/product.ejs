@@ -4,7 +4,9 @@
     <div class="info">
       <h1>${product.name}</h1>
       <p class="price">₹${product.price}</p>
-      <p>${product.description}</p>
+      <p class="desc">${product.description}</p>
+      <p><strong>Category:</strong> ${product.category}</p>
+      <p><strong>Stock:</strong> ${product.stock}</p>
       <form action="/cart/add/${product.id}" method="POST">
         <button type="submit" class="btn">Add to Cart</button>
       </form>
